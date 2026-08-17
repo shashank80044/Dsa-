@@ -1,31 +1,55 @@
 import java.util.Arrays;
 
 class Solution {
-    public String stoneGameIII(int[] stoneValue) {
-        int n = stoneValue.length;
-        
-        // dp[i] stores the maximum score advantage (Current Player - Opponent) 
-        // starting from index i to the end.
-        int[] dp = new int[n + 1];
-        
-        // Traverse backwards from the last stone
-        for (int i = n - 1; i >= 0; i--) {
-            int maxAdvantage = Integer.MIN_VALUE;
-            int currentTakeSum = 0;
-            
-            // Try taking 1, 2, or 3 stones
-            for (int k = 0; k < 3 && i + k < n; k++) {
-                currentTakeSum += stoneValue[i + k];
-                int opponentAdvantage = dp[i + k + 1];
-                maxAdvantage = Math.max(maxAdvantage, currentTakeSum - opponentAdvantage);
+    private int n;
+    private int[][] dp; 
+
+    private int solveForAlice(int[] piles, int person, int i) {
+        if (i >= n) return 0;
+
+        if (dp[person][i] != -1) return dp[person][i];
+
+        int result = (person == 1) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+        int stones = 0;
+
+        // Added boundary check: i + x - 1 < n
+        for (int x = 1; x <= 3 && i + x - 1 < n; x++) {
+            stones += piles[i + x - 1];
+
+            if (person == 1) {
+                result = Math.max(result, stones + solveForAlice(piles, 0, i + x));
+            } else {
+                result = Math.min(result, solveForAlice(piles, 1, i + x));
             }
-            
-            dp[i] = maxAdvantage;
         }
+
+        return dp[person][i] = result;
+    }
+
+    public String stoneGameIII(int[] stoneValue) {
+        n = stoneValue.length;
+        int total = 0;
+        for (int j = 0; j < n; j++) {
+            total += stoneValue[j]; 
+        }
+
+        dp = new int[2][n + 1];
         
-        // dp[0] represents Alice's relative score advantage over Bob from the start
-        if (dp[0] > 0) return "Alice";
-        if (dp[0] < 0) return "Bob";
-        return "Tie";
+        // Fixed 2D array initialization loop
+        for (int[] row : dp) {
+            Arrays.fill(row, -1);
+        }
+
+        // Fixed method call with 3 arguments instead of 4
+        int Alice = solveForAlice(stoneValue, 1, 0);
+        int Bob = total - Alice;
+
+        if (Alice > Bob) {
+            return "Alice";
+        } else if (Bob > Alice) {
+            return "Bob";
+        } else {
+            return "Tie";
+        }
     }
 }
