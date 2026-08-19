@@ -1,12 +1,21 @@
 class Solution {
+
     public boolean winnerSquareGame(int n) {
+        return solveForAlice(n);
+    }
+
+    public boolean solveForAlice(int n) {
+
         boolean[] dp = new boolean[n + 1];
 
+        
+
         for (int i = 1; i <= n; i++) {
+
             for (int k = 1; k * k <= i; k++) {
-                if (!dp[i - k * k]) {
+                if (dp[i - k * k] == false) {
                     dp[i] = true;
-                    break; 
+                    break;
                 }
             }
         }
