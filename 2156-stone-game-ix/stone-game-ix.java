@@ -1,23 +1,32 @@
 class Solution {
     public boolean stoneGameIX(int[] stones) {
+     int co = 0;
+     int c1 = 0;
+     int c2 = 0;
 
-        int[] count = new int[3];
+     for(int i =0; i<stones.length ;i++)
+     {
+     if(stones[i] %3==0)
+     {
+        co++;
+     }
+     else if(stones[i] % 3 ==1)
+     {
+        c1++;
+     }
+     else{
+        c2++;
+     }
 
-        for (int stone : stones) {
-            count[stone % 3]++;
-        }
+     }
+     if(co % 2 == 0)
+     {
+            return ((c1>=1 && c2>=1) && (c2>=c1 || c1>=c2));
+     }
 
-       
-        if (count[1] == 0 && count[2] == 0) {
-            return false;
-        }
+     else{
+        return Math.abs(c1-c2)>=3;
+     }
 
-    
-        if (count[0] % 2 == 0) {
-            return count[1] > 0 && count[2] > 0;
-        }
-
-       
-        return Math.abs(count[1] - count[2]) > 2;
     }
 }
