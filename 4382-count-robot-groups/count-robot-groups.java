@@ -3,7 +3,7 @@ class Solution {
 
         int n = position.length;
 
-        int groups = 1; // At least 1 group will be formed
+        int groups = 1; 
 
         int groupSpeed = speed[n - 1];
 
