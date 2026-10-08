@@ -47,7 +47,7 @@ class Solution {
         return minCost;
     }
 
-    // Simple helper function to find minimum dial rotation between two numbers
+    
     private int cost(int a, int b) {
         int diff = Math.abs(a - b);
         return Math.min(diff, 10 - diff);
