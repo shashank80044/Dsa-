@@ -1,16 +1,13 @@
-
-import java.util.*;
-
 class Solution {
     public int[] assignTasks(int[] servers, int[] tasks) {
 
         int n = servers.length;
         int m = tasks.length;
 
-        int[] ans = new int[m];
+        int[] res = new int[m];
 
-        // Free servers: [weight, index]
-        PriorityQueue<int[]> free = new PriorityQueue<>(
+        // Available servers: weight, index
+        PriorityQueue<int[]> pq = new PriorityQueue<>(
             (a, b) -> {
                 if (a[0] != b[0]) {
                     return Integer.compare(a[0], b[0]);
@@ -19,77 +16,69 @@ class Solution {
             }
         );
 
-        // Busy servers: [freeTime, weight, index]
-        PriorityQueue<long[]> busy = new PriorityQueue<>(
+        // Busy servers: finishTime, weight, index
+        PriorityQueue<int[]> dq = new PriorityQueue<>(
             (a, b) -> {
                 if (a[0] != b[0]) {
-                    return Long.compare(a[0], b[0]);
+                    return Integer.compare(a[0], b[0]);
                 }
                 if (a[1] != b[1]) {
-                    return Long.compare(a[1], b[1]);
+                    return Integer.compare(a[1], b[1]);
                 }
-                return Long.compare(a[2], b[2]);
+                return Integer.compare(a[2], b[2]);
             }
         );
 
-        // Initially all servers are free
+        // Initially, all servers are available.
         for (int i = 0; i < n; i++) {
-            free.offer(new int[]{servers[i], i});
+            pq.add(new int[]{servers[i], i});
         }
 
-        // Maintain global time
         long time = 0;
 
-        for (int i = 0; i < m; i++) {
+        for (int j = 0; j < m; j++) {
 
-            // Task i arrives at second i
-            time = Math.max(time, i);
+            time = Math.max(time, j);
 
-            // Release completed servers
-            while (!busy.isEmpty() && busy.peek()[0] <= time) {
+            // Release all servers whose tasks are finished.
+            while (!dq.isEmpty() && dq.peek()[0] <= time) {
 
-                long[] curr = busy.poll();
+                int[] arr = dq.poll();
 
-                free.offer(new int[]{
-                    (int) curr[1],
-                    (int) curr[2]
-                });
+                pq.add(new int[]{arr[1], arr[2]});
             }
 
-            // If no server is free, wait
-            if (free.isEmpty()) {
+            // If no server is available, move time forward.
+            if (pq.isEmpty()) {
 
-                time = busy.peek()[0];
+                time = dq.peek()[0];
 
-                // Release all servers free at this time
-                while (!busy.isEmpty() && busy.peek()[0] <= time) {
+                while (!dq.isEmpty() && dq.peek()[0] <= time) {
 
-                    long[] curr = busy.poll();
+                    int[] arr = dq.poll();
 
-                    free.offer(new int[]{
-                        (int) curr[1],
-                        (int) curr[2]
-                    });
+                    pq.add(new int[]{arr[1], arr[2]});
                 }
             }
 
-            // Select the best available server
-            int[] server = free.poll();
+            // Select the best available server.
+            int[] server = pq.poll();
 
             int weight = server[0];
             int index = server[1];
 
-            ans[i] = index;
+            res[j] = index;
 
-            // Assign task and calculate finishing time
-            busy.offer(new long[]{
-                time + tasks[i],
+            // Assign the task and calculate finishing time.
+            long finishTime = time + tasks[j];
+
+            dq.add(new int[]{
+                (int) finishTime,
                 weight,
                 index
             });
         }
 
-        return ans;
+        return res;
     }
 }
-
