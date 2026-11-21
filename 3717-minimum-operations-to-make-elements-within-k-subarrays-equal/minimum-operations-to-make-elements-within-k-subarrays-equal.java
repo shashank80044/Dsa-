@@ -1,164 +1,171 @@
-
 import java.util.*;
 
 class Solution {
+    int n, x, k;
 
-    class Fenwick {
-        int n;
-        int[] count;
-        long[] sum;
+    long[] minOpsSubarray;
+    long[][] memo;
 
-        Fenwick(int n) {
-            this.n = n;
-            count = new int[n + 1];
-            sum = new long[n + 1];
+    int leftSize, rightSize;
+    long leftSum, rightSum;
+
+    TreeMap<Integer, Integer> left;
+    TreeMap<Integer, Integer> right;
+
+    // Add element to left
+    void addLeft(int val) {
+        left.put(val, left.getOrDefault(val, 0) + 1);
+        leftSize++;
+        leftSum += val;
+    }
+
+    // Add element to right
+    void addRight(int val) {
+        right.put(val, right.getOrDefault(val, 0) + 1);
+        rightSize++;
+        rightSum += val;
+    }
+
+    // Remove element from left
+    void removeLeft(int val) {
+        int freq = left.get(val);
+
+        if (freq == 1) {
+            left.remove(val);
+        } else {
+            left.put(val, freq - 1);
         }
 
-        void update(int i, int val, int freq) {
-            while (i <= n) {
-                count[i] += freq;
-                sum[i] += (long) val * freq;
-                i += i & -i;
-            }
+        leftSize--;
+        leftSum -= val;
+    }
+
+    // Remove element from right
+    void removeRight(int val) {
+        int freq = right.get(val);
+
+        if (freq == 1) {
+            right.remove(val);
+        } else {
+            right.put(val, freq - 1);
         }
 
-        int queryCount(int i) {
-            int ans = 0;
+        rightSize--;
+        rightSum -= val;
+    }
 
-            while (i > 0) {
-                ans += count[i];
-                i -= i & -i;
-            }
+    // Balance both sets
+    void balance() {
+        while (leftSize > rightSize + 1) {
+            int val = left.lastKey();
 
-            return ans;
+            removeLeft(val);
+            addRight(val);
         }
 
-        long querySum(int i) {
-            long ans = 0;
+        while (leftSize < rightSize) {
+            int val = right.firstKey();
 
-            while (i > 0) {
-                ans += sum[i];
-                i -= i & -i;
-            }
-
-            return ans;
-        }
-
-        // Find the index of the kth smallest element
-        int kth(int k) {
-            int idx = 0;
-
-            for (int bit = Integer.highestOneBit(n);
-                 bit > 0; bit >>= 1) {
-
-                int next = idx + bit;
-
-                if (next <= n && count[next] < k) {
-                    idx = next;
-                    k -= count[next];
-                }
-            }
-
-            return idx + 1;
+            removeRight(val);
+            addLeft(val);
         }
     }
 
+    // Insert element
+    void add(int val) {
+        if (left.isEmpty() || val <= left.lastKey()) {
+            addLeft(val);
+        } else {
+            addRight(val);
+        }
+
+        balance();
+    }
+
+    // Remove element
+    void remove(int val) {
+        if (left.containsKey(val)) {
+            removeLeft(val);
+        } else {
+            removeRight(val);
+        }
+
+        balance();
+    }
+
+    // Calculate minimum operations for current window
+    long getCost() {
+        long median = left.lastKey();
+
+        return (median * leftSize - leftSum)
+             + (rightSum - median * rightSize);
+    }
+
+    // Recursive DP
+    long solve(int count, int i) {
+        if (count == k) {
+            return 0;
+        }
+
+        int subArraysNeeded = k - count;
+        int elementsNeeded = subArraysNeeded * x;
+        int lastIndex = i + elementsNeeded - 1;
+
+        if (lastIndex >= n) {
+            return Long.MAX_VALUE / 4;
+        }
+
+        if (memo[count][i] != -1) {
+            return memo[count][i];
+        }
+
+        // Take subarray starting at i
+        long result = minOpsSubarray[i] + solve(count + 1, i + x);
+
+        // Skip index i
+        result = Math.min(result, solve(count, i + 1));
+
+        return memo[count][i] = result;
+    }
+
     public long minOperations(int[] nums, int x, int k) {
+        this.n = nums.length;
+        this.x = x;
+        this.k = k;
 
-        int n = nums.length;
+        minOpsSubarray = new long[n];
 
-        // Coordinate compression
-        int[] sorted = nums.clone();
-        Arrays.sort(sorted);
+        memo = new long[k + 1][n + 1];
 
-        int m = 0;
+        for (long[] row : memo) {
+            Arrays.fill(row, -1);
+        }
 
-        for (int i = 0; i < n; i++) {
-            if (i == 0 || sorted[i] != sorted[i - 1]) {
-                sorted[m++] = sorted[i];
+        left = new TreeMap<>();
+        right = new TreeMap<>();
+
+        leftSize = 0;
+        rightSize = 0;
+        leftSum = 0;
+        rightSum = 0;
+
+        // Sliding window to calculate cost of every subarray of size x
+        int i = 0;
+        int j = 0;
+
+        while (j < n) {
+            add(nums[j]);
+
+            if (j - i + 1 == x) {
+                minOpsSubarray[i] = getCost();
+
+                remove(nums[i]);
+                i++;
             }
+
+            j++;
         }
 
-        int[] rank = new int[n];
-
-        for (int i = 0; i < n; i++) {
-            rank[i] = Arrays.binarySearch(
-                sorted, 0, m, nums[i]
-            ) + 1;
-        }
-
-        // Calculate cost of every window
-        Fenwick bit = new Fenwick(m);
-
-        long[] cost = new long[n - x + 1];
-
-        // Insert first window
-        for (int i = 0; i < x; i++) {
-            bit.update(rank[i], nums[i], 1);
-        }
-
-        for (int i = 0; i <= n - x; i++) {
-
-            // Find median
-            int mid = bit.kth((x + 1) / 2);
-            long median = sorted[mid - 1];
-
-            // Sum of elements <= median
-            int leftCount = bit.queryCount(mid);
-            long leftSum = bit.querySum(mid);
-
-            // Sum of all elements
-            long totalSum = bit.querySum(m);
-
-            int rightCount = x - leftCount;
-            long rightSum = totalSum - leftSum;
-
-            // Calculate minimum operations
-            cost[i] =
-                median * leftCount - leftSum
-                + rightSum - median * rightCount;
-
-            // Slide the window
-            if (i < n - x) {
-
-                bit.update(rank[i], nums[i], -1);
-
-                bit.update(
-                    rank[i + x],
-                    nums[i + x],
-                    1
-                );
-            }
-        }
-
-        // Dynamic Programming
-        long INF = Long.MAX_VALUE / 4;
-
-        long[][] dp = new long[n + 1][k + 1];
-
-        for (int i = 0; i <= n; i++) {
-            Arrays.fill(dp[i], INF);
-            dp[i][0] = 0;
-        }
-
-        for (int i = 1; i <= n; i++) {
-
-            for (int j = 1; j <= k; j++) {
-
-                // Choice 1: Skip current element
-                dp[i][j] = dp[i - 1][j];
-
-                // Choice 2: Select a window of size x
-                if (i >= x && dp[i - x][j - 1] != INF) {
-
-                    dp[i][j] = Math.min(
-                        dp[i][j],
-                        dp[i - x][j - 1] + cost[i - x]
-                    );
-                }
-            }
-        }
-
-        return dp[n][k];
+        return solve(0, 0);
     }
 }
